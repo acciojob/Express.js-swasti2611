@@ -1,12 +1,12 @@
-const fs = require("fs");
-const express = require("express");
+// const fs = require("fs");
+// const express = require("express");
 
-const app = express();
+// const app = express();
 
-app.use(express.json());
+// app.use(express.json());
 
 
-
+// let books=[]
 // // Read all books
 // app.get("/books", (req, res) => {
 //   fs.readFile("./books.json", "utf-8", (err, data) => {
@@ -142,16 +142,29 @@ app.use(express.json());
 //     });
 //   });
 // });
-let books = []; // In-memory array to store books
 
-// Read all books
+// index.js
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(bodyParser.json());
+
+// Data structure to store books (initially empty)
+let books = [];
+
+// Routes
+// GET /books - Retrieve all books
 app.get('/books', (req, res) => {
   res.json(books);
 });
 
-// Read a specific book by ID
+// GET /books/:id - Retrieve a specific book by ID
 app.get('/books/:id', (req, res) => {
-  const id = Number(req.params.id);
+  const id = parseInt(req.params.id);
   const book = books.find(book => book.id === id);
 
   if (!book) {
@@ -161,48 +174,49 @@ app.get('/books/:id', (req, res) => {
   res.json(book);
 });
 
-// Create a new book
+// POST /books - Create a new book
 app.post('/books', (req, res) => {
   const { title, author, publication } = req.body;
 
   if (!title || !author || !publication) {
-    return res.status(400).json({ message: 'All fields are required' });
+    return res.status(400).json({ message: 'All fields (title, author, publication) are required' });
   }
 
-  const newBook = {
-    id: books.length + 1, // Generate unique ID (incremental)
-    title,
-    author,
-    publication
-  };
-
+  const id = books.length > 0 ? books[books.length - 1].id + 1 : 1;
+  const newBook = { id, title, author, publication };
   books.push(newBook);
+
   res.status(201).json({ message: 'Book created successfully', book: newBook });
 });
 
-// Update a book by ID
+// PUT /books/:id - Update a book by ID
 app.put('/books/:id', (req, res) => {
-  const id = Number(req.params.id);
+  const id = parseInt(req.params.id);
   const { title, author, publication } = req.body;
 
   if (!title || !author || !publication) {
-    return res.status(400).json({ message: 'All fields are required' });
+    return res.status(400).json({ message: 'All fields (title, author, publication) are required' });
   }
 
-  const bookIndex = books.findIndex(book => book.id === id);
+  let updated = false;
+  books = books.map(book => {
+    if (book.id === id) {
+      updated = true;
+      return { ...book, title, author, publication };
+    }
+    return book;
+  });
 
-  if (bookIndex === -1) {
+  if (!updated) {
     return res.status(404).json({ message: 'Book not found' });
   }
 
-  books[bookIndex] = { ...books[bookIndex], title, author, publication };
-
-  res.json({ message: 'Book updated successfully', updatedBook: books[bookIndex] });
+  res.json({ message: 'Book updated successfully' });
 });
 
-// Delete a book by ID
+// DELETE /books/:id - Delete a book by ID
 app.delete('/books/:id', (req, res) => {
-  const id = Number(req.params.id);
+  const id = parseInt(req.params.id);
 
   const initialLength = books.length;
   books = books.filter(book => book.id !== id);
@@ -211,8 +225,14 @@ app.delete('/books/:id', (req, res) => {
     return res.status(404).json({ message: 'Book not found' });
   }
 
-  res.json({ message: 'Book removed successfully' });
+  res.json({ message: 'Book deleted successfully' });
 });
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
+
 
 
 
